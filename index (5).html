@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SoruLig – Soru çöz, rank atla</title>
+<meta name="theme-color" content="#0d0e19">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🏆%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#f3f4fb; --card:#ffffff; --card2:#eef0fa; --text:#1a1c2b; --muted:#6a6e86; --line:#e0e3f1;
+  --accent:#6a4cff; --accent2:#a24cff; --good:#1fa971; --warn:#e8590c; --shadow:0 6px 24px -10px rgba(40,40,90,.25);
+  --font:"Oxanium",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0d0e19; --card:#171829; --card2:#1f2137; --text:#eceefb; --muted:#9296b3; --line:#2b2d47;
+    --accent:#8b6cff; --accent2:#c06cff; --good:#3ddc97; --warn:#ff8a4c; --shadow:0 8px 30px -12px rgba(0,0,0,.7);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0d0e19; --card:#171829; --card2:#1f2137; --text:#eceefb; --muted:#9296b3; --line:#2b2d47;
+  --accent:#8b6cff; --accent2:#c06cff; --good:#3ddc97; --warn:#ff8a4c; --shadow:0 8px 30px -12px rgba(0,0,0,.7);
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--body);min-height:100%;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.wrap{max-width:1060px;margin:0 auto;padding:18px 14px 60px}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.logo{font-family:var(--font);font-weight:800;font-size:26px;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
+.logo .g{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.pill{font-size:12px;color:var(--muted);background:var(--card);border:1px solid var(--line);padding:5px 10px;border-radius:99px}
+.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.col{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow);min-width:0}
+.card h2{margin:0 0 12px;font-family:var(--font);font-size:15px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.row{display:flex;align-items:center;gap:14px}
+.grow{flex:1;min-width:0}
+.banner{background:var(--card2);border:1px dashed var(--warn);color:var(--text);border-radius:14px;padding:10px 14px;font-size:13px;margin-bottom:14px;line-height:1.5;display:none}
+
+/* profile */
+.profile{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:center}
+.profile .mid{flex:1;min-width:150px;text-align:left}
+.pname{font-family:var(--font);font-size:24px;font-weight:800;line-height:1.1;word-break:break-word}
+.prank{font-family:var(--font);font-weight:700;font-size:18px;margin-top:2px}
+.bar{height:12px;border-radius:99px;background:var(--card2);overflow:hidden;border:1px solid var(--line)}
+.bar>i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--c1,var(--accent)),var(--c2,var(--accent2)));transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.barinfo{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);margin-top:6px;gap:8px;flex-wrap:wrap}
+
+/* ====== ÇERÇEVE (SVG, animasyonlu) ====== */
+.frame{position:relative;width:var(--s,64px);height:var(--s,64px);flex:none;display:inline-block}
+.frame svg.fx{position:absolute;left:50%;top:50%;width:calc(var(--s)*2.4);height:calc(var(--s)*2.4);transform:translate(-50%,-50%);overflow:visible;pointer-events:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes twinkle{0%,100%{transform:scale(0);opacity:0}50%{transform:scale(1);opacity:1}}
+@keyframes flicker{0%,100%{transform:scale(1,1)}30%{transform:scale(.86,1.24)}65%{transform:scale(1.08,.9)}}
+@keyframes pulse{0%,100%{opacity:.5;transform:scale(.96)}50%{opacity:1;transform:scale(1.08)}}
+@keyframes flap{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-5deg)}}
+.fx .tw{transform-box:fill-box;transform-origin:center;animation:twinkle 2.6s ease-in-out infinite}
+.fx .fl{transform-box:fill-box;transform-origin:50% 100%;animation:flicker .95s ease-in-out infinite}
+.fx .pulse{transform-box:fill-box;transform-origin:center;animation:pulse 3.4s ease-in-out infinite}
+.fx .shim{transform-origin:100px 100px;animation:spin 3.4s linear infinite}
+.fx .orbit{transform-origin:100px 100px;animation:spin 9s linear infinite}
+.fx .halo{transform-origin:100px 100px;animation:spin 24s linear infinite reverse}
+.fx .flap{transform-origin:146px 98px;animation:flap 2.8s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.fx *{animation:none!important}}
+
+/* add card */
+.addrow{display:flex;align-items:center;gap:14px}
+.ring{position:relative;width:84px;height:84px;flex:none}
+.ring svg{transform:rotate(-90deg)}
+.ring .rt{position:absolute;inset:0;display:grid;place-items:center;text-align:center;font-family:var(--font);font-weight:800;font-size:18px;line-height:1}
+.ring .rt small{display:block;font-size:10px;color:var(--muted);font-weight:600;margin-top:2px}
+.inp{display:flex;gap:8px}
+input[type=number],input[type=text]{width:100%;font:inherit;font-size:18px;font-weight:600;padding:12px 14px;border-radius:12px;border:2px solid var(--line);background:var(--card2);color:var(--text);outline:none;min-width:0}
+input:focus{border-color:var(--accent)}
+button{font:inherit;cursor:pointer}
+.btn{border:0;border-radius:12px;padding:12px 18px;font-family:var(--font);font-weight:800;font-size:16px;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2));box-shadow:0 6px 16px -6px var(--accent);white-space:nowrap}
+.btn:active{transform:translateY(1px)}
+.btn.ghost{background:var(--card2);color:var(--text);box-shadow:none;border:1px solid var(--line)}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.chip{border:1px solid var(--line);background:var(--card2);color:var(--text);border-radius:99px;padding:5px 12px;font-size:13px;font-weight:600}
+.chip:hover{border-color:var(--accent)}
+.link{background:none;border:0;color:var(--muted);font-size:12.5px;text-decoration:underline;padding:4px}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:520px){.stats{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px}
+.stat b{display:block;font-family:var(--font);font-size:26px;font-weight:800;line-height:1.1}
+.stat span{font-size:12px;color:var(--muted)}
+
+/* chart */
+.seg{display:inline-flex;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+.seg button{border:0;background:none;color:var(--muted);padding:5px 10px;border-radius:8px;font-size:12.5px;font-weight:700}
+.seg button.on{background:var(--card);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.chartbox{overflow-x:auto}
+.chartbox svg{display:block;width:100%;min-width:320px;height:auto}
+.ax{fill:var(--muted);font-size:10px;font-family:var(--body)}
+.hist{max-height:300px;overflow:auto;display:flex;flex-direction:column;gap:6px}
+.hrow{display:grid;grid-template-columns:110px 1fr 46px;gap:10px;align-items:center;font-size:13px}
+.hrow .hb{height:8px;background:var(--card2);border-radius:99px;overflow:hidden}
+.hrow .hb i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:99px}
+.hrow em{font-style:normal;font-weight:800;font-family:var(--font);text-align:right}
+
+/* leaderboard */
+.lb{display:flex;flex-direction:column;gap:6px}
+.lrow{display:grid;grid-template-columns:26px auto 1fr auto;gap:2px 6px;align-items:center;padding:6px 10px;border-radius:14px;background:var(--card2);border:1px solid transparent;position:relative}
+.lrow.me{border-color:var(--accent)}
+.lrow .pos{font-family:var(--font);font-weight:800;font-size:18px;text-align:center;color:var(--muted)}
+.lrow.p1 .pos{color:#f2b632}.lrow.p2 .pos{color:#aab4c2}.lrow.p3 .pos{color:#c9824a}
+.lrow .nm{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lrow .rk{font-size:12px;font-weight:700}
+.lrow .sc{font-family:var(--font);font-weight:800;font-size:20px;text-align:right}
+.lrow .sc small{display:block;font-size:10px;color:var(--muted);font-weight:600}
+.lrow .fillbar{position:absolute;left:10px;right:10px;bottom:2px;height:3px;border-radius:3px;background:var(--line);overflow:hidden}
+.lrow .fillbar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.empty{color:var(--muted);font-size:14px;padding:10px 0}
+.note{font-size:12.5px;color:var(--muted);background:var(--card2);border:1px dashed var(--line);padding:10px 12px;border-radius:12px;margin-top:10px;line-height:1.45}
+.grpbar{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.grpbar code{background:var(--card2);border:1px solid var(--line);border-radius:8px;padding:3px 8px;color:var(--text);font-weight:700}
+
+/* season */
+.sline{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:10px}
+.sline b{color:var(--text)}
+.trophy-track{position:relative;margin:26px 16px 30px 6px}
+.trophy-track .bar{height:14px}
+.tmark{position:absolute;top:-24px;transform:translateX(-50%);text-align:center;font-size:20px;filter:grayscale(1);opacity:.45;transition:all .4s}
+.tmark.on{filter:none;opacity:1}
+.tmark small{display:block;font-size:10px;color:var(--muted);font-family:var(--font);font-weight:700;margin-top:34px}
+.past{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.prow{display:flex;gap:8px;align-items:center;justify-content:space-between;background:var(--card2);border-radius:10px;padding:7px 10px;font-size:13px;flex-wrap:wrap}
+.prow b{font-family:var(--font)}
+.prow span{color:var(--muted)}
+
+/* rank path */
+.path{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}
+.pstep{flex:none;width:78px;text-align:center;opacity:.35;transition:opacity .3s}
+.pstep.done{opacity:1}
+.pstep.cur{opacity:1;transform:scale(1.08)}
+.pstep.cur .pn{color:var(--text)}
+.pstep .pn{font-family:var(--font);font-weight:700;font-size:12px;color:var(--muted)}
+.pstep .pt{font-size:10.5px;color:var(--muted)}
+
+/* achievements */
+.ach{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.at{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;gap:10px;align-items:center}
+.at .ic{font-size:26px;flex:none;width:34px;text-align:center}
+.at b{display:block;font-family:var(--font);font-size:13.5px;line-height:1.2}
+.at span{font-size:11.5px;color:var(--muted);line-height:1.3;display:block;margin-top:2px}
+.at.lock{opacity:.5}
+.at.lock .ic{filter:grayscale(1)}
+.at.got{border-color:var(--accent)}
+
+/* overlays */
+.overlay{position:fixed;inset:0;background:rgba(8,8,20,.78);display:none;place-items:center;z-index:50;padding:20px;backdrop-filter:blur(4px);overflow:auto}
+.overlay.show{display:grid}
+.modal{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:24px;width:min(440px,100%);text-align:center;position:relative;z-index:2}
+.modal h3{font-family:var(--font);margin:8px 0 4px;font-size:30px;font-weight:800}
+.modal p{margin:6px 0 16px;color:var(--muted)}
+.modal label.l{text-align:left}
+.pop{animation:pop .7s cubic-bezier(.2,1.4,.3,1) both}
+@keyframes pop{from{transform:scale(.2) rotate(-12deg);opacity:0}to{transform:none;opacity:1}}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:60;width:100%;height:100%}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,40px);background:var(--text);color:var(--bg);padding:10px 18px;border-radius:99px;font-weight:700;opacity:0;transition:all .3s;z-index:70;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.setgrid{display:grid;grid-template-columns:1fr 100px;gap:8px;margin-bottom:8px}
+.setgrid input,.modal input{font-size:15px;padding:10px 12px}
+label.l{font-size:12px;color:var(--muted);display:block;margin:0 0 4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo">🏆 <span>Soru<span class="g">Lig</span></span></div>
+    <div class="pill" id="modePill">Bağlanıyor…</div>
+  </header>
+  <div class="banner" id="banner"></div>
+
+  <div id="loading" class="card"><div class="empty">Yükleniyor…</div></div>
+
+  <div id="app" class="grid" style="display:none">
+    <div class="col">
+      <div class="card" id="profileCard"></div>
+
+      <div class="card" id="addCard">
+        <h2>Bugünkü soruların</h2>
+        <div class="addrow">
+          <div class="ring" id="ring"></div>
+          <div class="grow">
+            <div class="inp">
+              <input type="number" id="qn" inputmode="numeric" min="1" max="1000" placeholder="Kaç soru?">
+              <button class="btn" id="addBtn">Ekle</button>
+            </div>
+            <div class="chips" id="chips">
+              <button class="chip" data-n="10">10</button>
+              <button class="chip" data-n="20">20</button>
+              <button class="chip" data-n="30">30</button>
+              <button class="chip" data-n="50">50</button>
+              <button class="link" id="undoBtn" style="margin-left:auto">↩ Son girişi geri al</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card"><h2>İstatistikler</h2><div class="stats" id="stats"></div></div>
+
+      <div class="card">
+        <div class="row" style="justify-content:space-between;margin-bottom:10px">
+          <h2 style="margin:0">Gün gün</h2>
+          <div class="seg" id="rangeSeg">
+            <button data-r="7">7 gün</button><button data-r="14" class="on">14 gün</button><button data-r="30">30 gün</button>
+          </div>
+        </div>
+        <div class="chartbox" id="chart"></div>
+        <div class="hist" id="hist" style="margin-top:12px"></div>
+      </div>
+
+      <div class="card"><h2 id="achTitle">Başarımlar</h2><div class="ach" id="ach"></div></div>
+    </div>
+
+    <div class="col">
+      <div class="card">
+        <div class="row" style="justify-content:space-between;margin-bottom:10px;flex-wrap:wrap">
+          <h2 style="margin:0">Liderlik tablosu</h2>
+          <div class="seg" id="perSeg">
+            <button data-p="today">Bugün</button><button data-p="week">Hafta</button><button data-p="season">Sezon</button><button data-p="all" class="on">Toplam</button>
+          </div>
+        </div>
+        <div class="lb" id="lb"></div>
+        <div class="grpbar" id="grpbar" style="display:none"></div>
+        <div class="note" id="lbNote" style="display:none"></div>
+      </div>
+
+      <div class="card" id="seasonCard"></div>
+
+      <div class="card"><h2>Rank yolu</h2><div class="path" id="path"></div></div>
+
+      <div class="card">
+        <h2>Ayarlar</h2>
+        <div class="setgrid">
+          <div><label class="l" for="setName">Takma adın</label><input type="text" id="setName" maxlength="20"></div>
+          <div><label class="l" for="setGoal">Günlük hedef</label><input type="number" id="setGoal" min="1" max="1000"></div>
+        </div>
+        <div id="setGrpWrap" style="margin-bottom:8px;display:none"><label class="l" for="setGrp">Grup kodu</label><input type="text" id="setGrp" maxlength="30"></div>
+        <button class="btn ghost" id="saveSet" style="width:100%;font-size:14px">Kaydet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- onboarding -->
+<div class="overlay" id="onb">
+  <div class="modal">
+    <div style="font-size:48px">⚔️</div>
+    <h3>SoruLig'e hoş geldin</h3>
+    <p>Takma adını seç, Demir'den başla, Challenger'a kadar tırman.</p>
+    <div style="margin-bottom:10px;text-align:left"><label class="l" for="onbName">Takma adın</label><input type="text" id="onbName" maxlength="20" placeholder="örn. Ahmet"></div>
+    <div id="onbGrpWrap" style="margin-bottom:12px;text-align:left;display:none"><label class="l" for="onbGrp">Grup kodu (arkadaşlarınla aynı kodu yaz)</label><input type="text" id="onbGrp" maxlength="30" placeholder="örn. sinif-12a"></div>
+    <button class="btn" id="onbGo" style="width:100%">Maceraya başla</button>
+  </div>
+</div>
+
+<!-- rank up -->
+<div class="overlay" id="rankup">
+  <div class="modal">
+    <div style="display:flex;justify-content:center;align-items:center;gap:0;padding:50px 0 20px">
+      <div class="pop" id="ruFrame"></div>
+      <div class="pop" id="ruEmblem" style="animation-delay:.15s"></div>
+    </div>
+    <div style="font-family:var(--font);letter-spacing:2px;color:var(--muted);font-size:13px">TERFİ ETTİN!</div>
+    <h3 id="ruName"></h3>
+    <p id="ruSub"></p>
+    <button class="btn" id="ruClose" style="width:100%">Devam et</button>
+  </div>
+</div>
+<canvas id="confetti"></canvas>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.78.0/dist/umd/supabase.js"></script>
+<script>
+"use strict";
+/* =====================================================================
+   AYARLAR — Supabase bilgilerini buraya yapıştır (README.md'de anlatılıyor)
+   Boş bırakırsan uygulama sadece bu cihazda (çevrimdışı) çalışır.
+   ===================================================================== */
+const CONFIG={
+  SUPABASE_URL:"https://vnfrlpfdnjejprxjddfw.supabase.co",       // örn. "https://abcdxyz.supabase.co"
+  SUPABASE_ANON_KEY:"sb_publishable_jwQv7EULmMfXqPf6YvMPvA_Xi-ZEmEK"   // Publishable key (sb_publishable_...) ya da eski anon anahtarı. İkisi de olur, gizli değildir
+};
+
+/* ---------- Rank sistemi ---------- */
+const TIERS=[
+  {name:"Demir",color:"#8a8f98",size:50,divs:4},
+  {name:"Bronz",color:"#c07a3e",size:75,divs:4},
+  {name:"Gümüş",color:"#c3ccd8",size:100,divs:4},
+  {name:"Altın",color:"#f5b830",size:150,divs:4},
+  {name:"Platin",color:"#35d3c8",size:200,divs:4},
+  {name:"Zümrüt",color:"#2fd673",size:250,divs:4},
+  {name:"Elmas",color:"#5aa9ff",size:300,divs:4},
+  {name:"Usta",color:"#b455f0",size:2000,divs:1},
+  {name:"Grandmaster",color:"#f0494f",size:2500,divs:1},
+  {name:"Challenger",color:"#ffd54a",size:Infinity,divs:1}
+];
+const ROMAN=["IV","III","II","I"];
+function rankOf(total){
+  total=Math.max(0,Number(total)||0);
+  let acc=0;
+  for(let t=0;t<TIERS.length;t++){
+    const T=TIERS[t];
+    for(let d=0;d<T.divs;d++){
+      if(T.size===Infinity||total<acc+T.size){
+        const into=total-acc;
+        let next=null;
+        if(T.size!==Infinity){
+          if(d<T.divs-1)next=T.name+" "+ROMAN[d+1];
+          else{const N=TIERS[t+1];next=N.divs>1?N.name+" "+ROMAN[0]:N.name;}
+        }
+        return{t,d,tier:T,key:t*10+d,into,size:T.size,
+          pct:T.size===Infinity?100:into/T.size*100,
+          need:T.size===Infinity?0:T.size-into,next,
+          divLabel:T.divs>1?ROMAN[d]:"",
+          label:T.divs>1?T.name+" "+ROMAN[d]:T.name};
+      }
+      acc+=T.size;
+    }
+  }
+}
+function tierStart(t){let a=0;for(let i=0;i<t;i++)a+=TIERS[i].size*TIERS[i].divs;return a;}
+
+/* ---------- Renk yardımcıları ---------- */
+function hex2rgb(h){h=h.replace("#","");return[0,2,4].map(i=>parseInt(h.substr(i,2),16));}
+function mix(h,o,a){const A=hex2rgb(h),B=hex2rgb(o);return"#"+A.map((v,i)=>Math.round(v*(1-a)+B[i]*a).toString(16).padStart(2,"0")).join("");}
+const light=(h,a=.45)=>mix(h,"#ffffff",a), dark=(h,a=.4)=>mix(h,"#000000",a);
+
+/* ---------- Emblem (kalkan rozet) ---------- */
+let gid=0;
+function emblem(t,div,px){
+  const c=TIERS[t].color,id="g"+(++gid);
+  const wings=t>=3, crown=t>=6;
+  const wing=`<path d="M10 26 L-14 12 L-8 34 L-16 44 L-5 54 L-12 68 L10 62 Z" fill="url(#${id}w)" stroke="${dark(c,.5)}" stroke-width="1.5"/>`;
+  const txt=div?`<text x="50" y="68" text-anchor="middle" font-family="Oxanium,system-ui,sans-serif" font-weight="800" font-size="30" fill="${dark(c,.65)}">${div}</text>`
+    :`<text x="50" y="70" text-anchor="middle" font-size="34" fill="${dark(c,.65)}">★</text>`;
+  return`<svg width="${px}" height="${Math.round(px*.84)}" viewBox="-20 -6 140 118" aria-hidden="true">
+  <defs>
+    <linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${light(c,.55)}"/><stop offset=".5" stop-color="${c}"/><stop offset="1" stop-color="${dark(c,.45)}"/></linearGradient>
+    <linearGradient id="${id}w" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${light(c,.3)}"/><stop offset="1" stop-color="${dark(c,.35)}"/></linearGradient>
+  </defs>
+  ${wings?wing+`<g transform="translate(100,0) scale(-1,1)">${wing}</g>`:""}
+  <path d="M50 4 L92 20 V58 C92 82 72 98 50 106 C28 98 8 82 8 58 V20 Z" fill="url(#${id})" stroke="${dark(c,.5)}" stroke-width="3"/>
+  <path d="M50 14 L82 26 V57 C82 76 66 89 50 96 C34 89 18 76 18 57 V26 Z" fill="${light(c,.78)}" opacity=".35" stroke="${light(c,.7)}" stroke-width="1.5"/>
+  ${txt}
+  ${crown?`<circle cx="50" cy="2" r="5" fill="${light(c,.8)}" stroke="${dark(c,.5)}" stroke-width="1.5"/><circle cx="30" cy="9" r="3.5" fill="${light(c,.8)}"/><circle cx="70" cy="9" r="3.5" fill="${light(c,.8)}"/>`:""}
+  </svg>`;
+}
+
+/* =====================================================================
+   FANTASTİK ANİMASYONLU ÇERÇEVELER
+   Her lig farklı: Demir perçinli halka → Bronz → Gümüş kanat tomurcukları →
+   Altın kanatlar + mücevher → Platin parlama → Zümrüt → Elmas kristalleri →
+   Usta (taç + yörünge) → Grandmaster (alev) → Challenger (büyük kanat, taç, alev, hale)
+   ===================================================================== */
+const WING_N=[0,2,3,4,5,6,6,7,7,8];
+const WING_S=[0,.38,.5,.72,.86,.92,.96,1,1.02,1.15];
+const GEM_COL=[null,null,null,"#ff5a5a","#6ff3ea","#5dff9b","#8cc8ff"];
+const CROWN_GEM={7:"#d58bff",8:"#ff6b6b",9:"#8ff4ff"};
+const STAR="M0 -7 L1.8 -1.8 L7 0 L1.8 1.8 L0 7 L-1.8 1.8 L-7 0 L-1.8 -1.8Z";
+
+function gemSVG(x,y,r,col){
+  return`<g><path d="M${x} ${y-r*1.25} L${x+r} ${y} L${x} ${y+r*1.25} L${x-r} ${y} Z" fill="${col}" stroke="${dark(col,.55)}" stroke-width="1"/><path d="M${x} ${y-r*1.25} L${x+r*.45} ${y-r*.1} L${x-r*.5} ${y-r*.1}Z" fill="#fff" opacity=".6"/></g>`;
+}
+function wingSVG(id,c,n,sc,ringR){
+  const sx=100+ringR+1,sy=98;
+  let back="",front="";
+  const a0=-80,a1=30;
+  for(let i=0;i<n;i++){
+    const ang=n===1?0:a0+(a1-a0)*i/(n-1);
+    const L=sc*(34+26*Math.sin(Math.PI*(i+.5)/n));
+    const w=6.5*sc+3;
+    const p=`M0 0 Q ${(L*.45).toFixed(1)} ${(-w*1.5).toFixed(1)} ${L.toFixed(1)} ${(-w*.1).toFixed(1)} Q ${(L*.5).toFixed(1)} ${(w*.95).toFixed(1)} 0 0 Z`;
+    back+=`<g transform="translate(${sx} ${sy}) rotate(${(ang+8).toFixed(1)}) scale(1.12)"><path d="${p}" fill="${dark(c,.5)}"/></g>`;
+    front+=`<g transform="translate(${sx} ${sy}) rotate(${ang.toFixed(1)})"><path d="${p}" fill="url(#${id}w)" stroke="${dark(c,.55)}" stroke-width=".9"/><path d="M2 0 Q ${(L*.5).toFixed(1)} ${(-w*.35).toFixed(1)} ${(L*.9).toFixed(1)} ${(-w*.08).toFixed(1)}" fill="none" stroke="${light(c,.85)}" stroke-width=".8" opacity=".7"/></g>`;
+  }
+  const one=`<g class="flap">${back}${front}</g>`;
+  return one+`<g transform="translate(200 0) scale(-1 1)">${one}</g>`;
+}
+function flamesSVG(id,n,r0,big,delays){
+  let s="";
+  for(let i=0;i<n;i++){
+    const th=(i*360/n+(big?0:6)).toFixed(1);
+    const sz=(i%2?1.0:1.45)*(big?1.15:1);
+    const dl=((i*0.173)%0.9).toFixed(2);
+    s+=`<g transform="rotate(${th} 100 100) translate(100 ${100-r0}) scale(${sz.toFixed(2)})"><g class="fl" style="animation-delay:-${dl}s;animation-duration:${(0.8+(i%3)*.17).toFixed(2)}s">
+      <path d="M-8 2 C-11 -10 -3 -15 -2 -27 C 1 -20 4 -18 5 -25 C 11 -15 11 -6 8 2 Z" fill="url(#${id}f)"/>
+      <path d="M-4 2 C-5 -5 -1 -9 0 -15 C 2 -10 5 -7 4 2 Z" fill="${big?"#fffbe0":"#fff0a0"}" opacity=".9"/></g></g>`;
+  }
+  return s;
+}
+function shardsSVG(c,n,r0){
+  let s="";
+  for(let i=0;i<n;i++){
+    const th=(i*360/n+11).toFixed(1),k=(i%2?.78:1.15);
+    s+=`<g transform="rotate(${th} 100 100) translate(100 ${100-r0}) scale(${k})">
+      <path d="M0 2 L-6 -10 L0 -30 L6 -10 Z" fill="${c}" stroke="${dark(c,.5)}" stroke-width="1"/>
+      <path d="M0 2 L-6 -10 L0 -30 Z" fill="${light(c,.75)}"/>
+      <path d="M0 -30 L2 -14 L-1 -8" fill="none" stroke="#fff" stroke-width=".8" opacity=".7"/></g>`;
+  }
+  return s;
+}
+function sparklesSVG(col,n){
+  const A=[-62,24,112,196,252,322,-18],R=[74,80,70,78,74,82,68];
+  let s="";
+  for(let i=0;i<n;i++){
+    const a=A[i%A.length]*Math.PI/180,r=R[i%R.length],x=100+Math.cos(a)*r,y=100+Math.sin(a)*r;
+    s+=`<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><path class="tw" d="${STAR}" fill="${col}" style="animation-delay:-${(i*.57).toFixed(2)}s"/></g>`;
+  }
+  return s;
+}
+function frame(name,t,s,opt){
+  opt=opt||{};
+  const id="f"+(++gid),c=TIERS[t].color;
+  const hm=opt.hm!=null?opt.hm:Math.round(s*(t>=1?.72:.2));
+  const vm=opt.vm!=null?opt.vm:Math.round(s*(t>=8?.42:t>=3?.3:.2));
+  const ini=(String(name||"?").trim()[0]||"?");
+  const ringW=6+(t>=3?2:0)+(t>=7?2:0), ringR=45;
+  let defs=`<defs>
+    <linearGradient id="${id}m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${light(c,.7)}"/><stop offset=".5" stop-color="${c}"/><stop offset="1" stop-color="${dark(c,.55)}"/></linearGradient>
+    <linearGradient id="${id}w" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${light(c,.78)}"/><stop offset=".55" stop-color="${c}"/><stop offset="1" stop-color="${dark(c,.42)}"/></linearGradient>
+    <linearGradient id="${id}k" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff4b8"/><stop offset=".5" stop-color="#f2b632"/><stop offset="1" stop-color="#9a5f00"/></linearGradient>
+    <linearGradient id="${id}f" x1="0" y1="1" x2="0" y2="0">${t>=9?'<stop offset="0" stop-color="#fff6c4"/><stop offset=".45" stop-color="#ffc21a"/><stop offset="1" stop-color="#ff7a00"/>':'<stop offset="0" stop-color="#ffd54a"/><stop offset=".5" stop-color="#ff7a1a"/><stop offset="1" stop-color="#d4141c"/>'}</linearGradient>
+    <radialGradient id="${id}g"><stop offset="0" stop-color="${c}" stop-opacity=".75"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></radialGradient>
+  </defs>`;
+  let back="",ring="",front="";
+  if(t>=3)back+=`<circle class="pulse" cx="100" cy="100" r="${t>=7?84:72}" fill="url(#${id}g)"/>`;
+  if(t>=8)back+=flamesSVG(id,t>=9?20:14,ringR+2,t>=9);
+  if(t===6)back+=shardsSVG(c,8,ringR+3);
+  if(t>=9)back+=`<circle class="halo" cx="100" cy="100" r="88" fill="none" stroke="${light(c,.3)}" stroke-width="2" stroke-dasharray="2 9" stroke-linecap="round" opacity=".8"/>`;
+  if(WING_N[t])back+=wingSVG(id,c,WING_N[t],WING_S[t],ringR+ringW/2);
+  // halka
+  ring+=`<circle cx="100" cy="100" r="${ringR+ringW/2}" fill="none" stroke="${dark(c,.65)}" stroke-width="1.5"/>
+         <circle cx="100" cy="100" r="${ringR}" fill="none" stroke="url(#${id}m)" stroke-width="${ringW}"/>
+         <circle cx="100" cy="100" r="${ringR-ringW/2}" fill="none" stroke="${light(c,.6)}" stroke-width="1" opacity=".8"/>`;
+  if(t>=1)ring+=`<circle class="shim" cx="100" cy="100" r="${ringR}" fill="none" stroke="#fff" stroke-opacity=".85" stroke-width="${ringW-3}" stroke-linecap="round" stroke-dasharray="16 267"/>`;
+  // perçin / çivi
+  const studN=t===0?4:t===1?4:8;
+  for(let i=0;i<studN;i++){
+    const a=(i*360/studN+45)*Math.PI/180;
+    ring+=`<circle cx="${(100+Math.cos(a)*ringR).toFixed(1)}" cy="${(100+Math.sin(a)*ringR).toFixed(1)}" r="${t===0?2.4:t===1?3:1.8}" fill="${light(c,.75)}" stroke="${dark(c,.6)}" stroke-width=".8"/>`;
+  }
+  // avatar
+  const disc=`<circle cx="100" cy="100" r="${ringR-ringW/2-.5}" style="fill:var(--card2)"/>
+    <text x="100" y="101" text-anchor="middle" dominant-baseline="central" style="font:800 40px Oxanium,system-ui,sans-serif;fill:var(--text);text-transform:uppercase">${esc(ini.toUpperCase())}</text>`;
+  // üst süs
+  if(t>=7){
+    const k=t>=9?1.2:1,gc=CROWN_GEM[t];
+    front+=`<g transform="translate(100 56) scale(${k}) translate(-100 -56)">
+      <path d="M74 58 L69 32 L87 46 L100 26 L113 46 L131 32 L126 58 Z" fill="url(#${id}k)" stroke="#7a4a00" stroke-width="1.4" stroke-linejoin="round"/>
+      <path d="M74 58 L126 58" stroke="#7a4a00" stroke-width="2"/>
+      ${gemSVG(100,41,4.2,gc)}${gemSVG(69,32,3,gc)}${gemSVG(131,32,3,gc)}
+      <circle cx="87" cy="50" r="1.8" fill="#fff" opacity=".8"/><circle cx="113" cy="50" r="1.8" fill="#fff" opacity=".8"/></g>`;
+  } else if(t>=3){
+    front+=gemSVG(100,50,6.5,GEM_COL[t]);
+    if(t>=5){front+=gemSVG(146,100,4.2,GEM_COL[t]);front+=gemSVG(54,100,4.2,GEM_COL[t]);}
+  }
+  if(t>=6)front+=gemSVG(100,150,4.5,GEM_COL[6]||c);
+  // yörünge, kıvılcım
+  let fx="";
+  if(t>=7)fx+=`<g class="orbit">${[0,120,240].map(a=>{const r=a*Math.PI/180;return`<circle cx="${(100+Math.cos(r)*66).toFixed(1)}" cy="${(100+Math.sin(r)*66).toFixed(1)}" r="3.2" fill="${light(c,.65)}"/>`;}).join("")}</g>`;
+  const spk=[0,0,0,0,2,3,6,4,4,7][t];
+  if(spk)fx+=sparklesSVG(t>=9?"#fff6c4":light(c,.8),spk);
+  return`<span class="frame" style="--s:${s}px;margin:${vm}px ${hm}px"><svg class="fx" viewBox="0 0 200 200" aria-hidden="true">${defs}${back}${ring}${disc}${front}${fx}</svg></span>`;
+}
+
+/* ---------- Yardımcılar ---------- */
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,"0");
+const dkey=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const todayKey=()=>dkey(new Date());
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+const weekStartKey=()=>{const d=new Date();return dkey(addDays(d,-((d.getDay()+6)%7)));};
+const keyToDate=k=>{const p=k.split("-").map(Number);return new Date(p[0],p[1]-1,p[2]);};
+const num=v=>{v=Number(v);return isFinite(v)&&v>0?Math.floor(v):0;};
+const monthLabel=m=>{const p=m.split("-").map(Number);return new Date(p[0],p[1]-1,1).toLocaleDateString("tr-TR",{month:"long",year:"numeric"});};
+function sumFrom(daily,fromKey){let s=0;for(const k in daily)if(k>=fromKey)s+=num(daily[k]);return s;}
+function monthSums(daily){const m={};for(const k in daily){const v=num(daily[k]);if(v){const mk=k.slice(0,7);m[mk]=(m[mk]||0)+v;}}return m;}
+function streakOf(daily){let d=new Date();if(!num(daily[dkey(d)]))d=addDays(d,-1);let n=0;while(num(daily[dkey(d)])){n++;d=addDays(d,-1);}return n;}
+function longestStreak(daily){
+  const ks=Object.keys(daily).filter(k=>num(daily[k])).sort();let best=0,cur=0,prev=null;
+  for(const k of ks){const d=keyToDate(k);cur=(prev&&Math.round((d-prev)/864e5)===1)?cur+1:1;best=Math.max(best,cur);prev=d;}
+  return best;
+}
+function toast(msg,ms){const t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),ms||2400);}
+const normGrp=s=>String(s||"").toLowerCase().replace(/ı/g,"i").replace(/ğ/g,"g").replace(/ü/g,"u").replace(/ş/g,"s").replace(/ö/g,"o").replace(/ç/g,"c").replace(/\s+/g,"-").replace(/[^a-z0-9_-]/g,"").slice(0,30);
+
+/* ---------- Sezonlar ---------- */
+function prevMonthKey(){const d=new Date();return dkey(new Date(d.getFullYear(),d.getMonth()-1,1)).slice(0,7);}
+function seasonHistory(list){
+  const cur=todayKey().slice(0,7),months=new Set();
+  list.forEach(p=>Object.keys(monthSums(p.daily)).forEach(m=>{if(m<cur)months.add(m);}));
+  return[...months].sort().reverse().map(m=>({m,r:list.map(p=>({p,s:monthSums(p.daily)[m]||0})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s||b.p.total-a.p.total)}));
+}
+const SEASON_TROPHIES=[{n:300,icon:"🥉",name:"Bronz Kupa"},{n:600,icon:"🥈",name:"Gümüş Kupa"},{n:1000,icon:"🥇",name:"Altın Kupa"}];
+
+/* ---------- Başarımlar ---------- */
+const ACHS=[
+  {id:"first",icon:"⚔️",name:"İlk Kan",desc:"İlk sorunu çöz",ok:c=>c.total>=1},
+  {id:"t100",icon:"🌱",name:"Çaylak",desc:"Toplam 100 soru",ok:c=>c.total>=100},
+  {id:"t500",icon:"🔨",name:"Azimli",desc:"Toplam 500 soru",ok:c=>c.total>=500},
+  {id:"t1000",icon:"🎯",name:"Bin Soru Kulübü",desc:"Toplam 1.000 soru",ok:c=>c.total>=1000},
+  {id:"t2500",icon:"⚙️",name:"Soru Makinesi",desc:"Toplam 2.500 soru",ok:c=>c.total>=2500},
+  {id:"t5000",icon:"🌟",name:"Efsane",desc:"Toplam 5.000 soru",ok:c=>c.total>=5000},
+  {id:"t10000",icon:"🐉",name:"Mitolojik",desc:"Toplam 10.000 soru",ok:c=>c.total>=10000},
+  {id:"d50",icon:"💥",name:"Güçlü Gün",desc:"Tek günde 50 soru",ok:c=>c.maxDay>=50},
+  {id:"d100",icon:"💯",name:"Yüzlük",desc:"Tek günde 100 soru",ok:c=>c.maxDay>=100},
+  {id:"d200",icon:"🌪️",name:"Çılgın Gün",desc:"Tek günde 200 soru",ok:c=>c.maxDay>=200},
+  {id:"s3",icon:"🔥",name:"Isınma",desc:"3 gün üst üste",ok:c=>c.longest>=3},
+  {id:"s7",icon:"☄️",name:"Haftalık Ateş",desc:"7 gün üst üste",ok:c=>c.longest>=7},
+  {id:"s14",icon:"🛡️",name:"Demir İrade",desc:"14 gün üst üste",ok:c=>c.longest>=14},
+  {id:"s30",icon:"📅",name:"Ay Boyu",desc:"30 gün üst üste",ok:c=>c.longest>=30},
+  {id:"g1",icon:"✅",name:"Hedef Tamam",desc:"Günlük hedefi 1 kez tuttur",ok:c=>c.goalDays>=1},
+  {id:"g10",icon:"🏹",name:"Hedef Avcısı",desc:"Hedefi 10 gün tuttur",ok:c=>c.goalDays>=10},
+  {id:"g30",icon:"🎖️",name:"Hedef Ustası",desc:"Hedefi 30 gün tuttur",ok:c=>c.goalDays>=30},
+  {id:"a30",icon:"📚",name:"Düzenli",desc:"30 farklı gün çalış",ok:c=>c.activeDays>=30},
+  {id:"we",icon:"🏕️",name:"Hafta Sonu Savaşçısı",desc:"Cumartesi ve pazar çalış",ok:c=>c.weekend},
+  {id:"m500",icon:"🐺",name:"Ay Canavarı",desc:"Bir ayda 500 soru",ok:c=>c.bestMonth>=500},
+  {id:"m1000",icon:"🏔️",name:"Maraton",desc:"Bir ayda 1.000 soru",ok:c=>c.bestMonth>=1000},
+  {id:"rgold",icon:"🥇",name:"Altın Çağ",desc:"Altın lige ulaş",ok:c=>c.tier>=3},
+  {id:"rdia",icon:"💎",name:"Elmas Eller",desc:"Elmas lige ulaş",ok:c=>c.tier>=6},
+  {id:"rchal",icon:"👑",name:"Zirve",desc:"Challenger ol",ok:c=>c.tier>=9},
+  {id:"podium",icon:"🏅",name:"Sezon Podyumu",desc:"Bir sezonu ilk 3'te bitir",ok:c=>c.podiums>=1},
+  {id:"champ",icon:"🏆",name:"Sezon Şampiyonu",desc:"Bir sezonu 1. bitir",ok:c=>c.champs>=1}
+];
+function buildCtx(p,hist){
+  const d=p.daily,ks=Object.keys(d).filter(k=>num(d[k]));
+  const total=ks.reduce((s,k)=>s+num(d[k]),0);
+  let weekend=false;
+  for(const k of ks){const dt=keyToDate(k);if(dt.getDay()===6&&num(d[dkey(addDays(dt,1))])){weekend=true;break;}}
+  const ms=monthSums(d);
+  let champs=0,podiums=0;
+  hist.forEach(h=>{const i=h.r.findIndex(x=>x.p.id===p.id);if(i===0)champs++;if(i>=0&&i<3)podiums++;});
+  return{total,maxDay:ks.reduce((m,k)=>Math.max(m,num(d[k])),0),longest:longestStreak(d),
+    goalDays:ks.filter(k=>num(d[k])>=p.goal).length,activeDays:ks.length,weekend,
+    bestMonth:Math.max(0,...Object.values(ms)),tier:rankOf(total).t,champs,podiums};
+}
+function unlockedIds(p){const c=buildCtx({...p,id:mode==="local"?"me":myId},seasonHistory(allPlayers()));return new Set(ACHS.filter(a=>a.ok(c)).map(a=>a.id));}
+
+/* ---------- Durum ---------- */
+let mode="loading";      // loading | db | local
+let sb=null,myId=null,grp="",mine=null,players=[];
+let pending=0,writeChain=Promise.resolve(),channel=null,pollT=null,refreshT=null;
+let period="all",range=14;
+const LS="sorulig:v2",LSG="sorulig:grp";
+const lsGet=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}};
+
+function newPlayer(name){return{name:name,total:0,daily:{},goal:30,last:null};}
+function cleanPlayer(id,d){
+  const daily={};let total=0;
+  const raw=d.daily&&typeof d.daily==="object"?d.daily:{};
+  for(const k in raw){const v=num(raw[k]);if(v&&/^\d{4}-\d{2}-\d{2}$/.test(k)){daily[k]=v;total+=v;}}
+  return{id,name:String(d.name||"Anonim").slice(0,20),total,daily,goal:Math.min(1000,num(d.goal)||30),last:d.last&&typeof d.last==="object"?d.last:null};
+}
+function allPlayers(){
+  if(mode==="local")return mine?[{id:"me",...mine}]:[];
+  const list=players.filter(p=>p.id!==myId);
+  if(mine)list.push({id:myId,...mine});
+  return list;
+}
+
+/* ---------- Kayıt ---------- */
+function persist(){
+  if(mode==="local"){lsSet(LS,JSON.stringify(mine));return;}
+  if(mode==="db"&&sb&&mine&&grp){
+    const body={id:myId,grp,name:mine.name,goal:mine.goal,total:mine.total,daily:JSON.parse(JSON.stringify(mine.daily)),last:mine.last,updated_at:new Date().toISOString()};
+    pending++;
+    writeChain=writeChain.then(async()=>{
+      const{error}=await sb.from("players").upsert(body);
+      if(error)throw error;
+    }).catch(e=>{console.error(e);toast("Sunucuya kaydedilemedi, internetini kontrol et");}).then(()=>{pending--;});
+  }
+}
+
+/* ---------- Eylemler ---------- */
+const MOTIV=["Harika gidiyorsun!","Bir adım daha yukarı!","Rakiplerin titriyor 😎","Disiplin = özgürlük","Böyle devam!","Tam gaz!","Her soru seni güçlendiriyor 💪"];
+function addSolved(n){
+  if(!mine)return;
+  n=Math.floor(Number(n));
+  if(!(n>=1&&n<=1000)){toast("1 ile 1000 arasında bir sayı gir");return;}
+  const before=rankOf(mine.total),achBefore=unlockedIds(mine);
+  const k=todayKey();
+  mine.daily[k]=(mine.daily[k]||0)+n;
+  mine.total+=n;
+  mine.last={date:k,n:n};
+  persist();
+  const after=rankOf(mine.total);
+  $("qn").value="";
+  render();
+  const newAch=[...unlockedIds(mine)].filter(id=>!achBefore.has(id)).map(id=>ACHS.find(a=>a.id===id));
+  if(after.key>before.key)showRankUp(after);
+  else toast("+"+n+" soru! "+MOTIV[Math.floor(Math.random()*MOTIV.length)]);
+  if(newAch.length)setTimeout(()=>toast("🏅 Yeni başarım: "+newAch.map(a=>a.icon+" "+a.name).join(", "),3600),after.key>before.key?400:1800);
+}
+function undo(){
+  if(!mine||!mine.last)return toast("Geri alınacak giriş yok");
+  const{date,n}=mine.last;
+  mine.daily[date]=Math.max(0,(mine.daily[date]||0)-n);
+  if(!mine.daily[date])delete mine.daily[date];
+  mine.total=Math.max(0,mine.total-n);
+  mine.last=null;
+  persist();render();toast("Son giriş geri alındı (−"+n+")");
+}
+
+/* ---------- Render ---------- */
+function myRankNow(){return rankOf(mine?mine.total:0);}
+function reigningChamp(){
+  const h=seasonHistory(allPlayers())[0];
+  return h&&h.m===prevMonthKey()&&h.r.length?h.r[0].p.id:null;
+}
+function renderProfile(){
+  const el=$("profileCard");
+  if(!mine){el.innerHTML='<div class="empty">Profil oluşturuluyor…</div>';return;}
+  const r=myRankNow(),c=r.tier.color;
+  const nextTxt=r.next?`<b>${esc(r.next)}</b> için <b>${r.need}</b> soru kaldı`:"Zirvedesin 👑";
+  const crown=reigningChamp()===(mode==="local"?"me":myId)?" 👑":"";
+  el.innerHTML=`
+  <div class="profile">
+    ${frame(mine.name,r.t,84)}
+    <div class="mid">
+      <div class="pname">${esc(mine.name)}${crown}</div>
+      <div class="prank" style="color:${c}">${esc(r.label)}</div>
+      <div style="font-size:12.5px;color:var(--muted)">${mine.total} toplam soru</div>
+    </div>
+    <div>${emblem(r.t,r.divLabel,100)}</div>
+  </div>
+  <div style="margin-top:6px">
+    <div class="bar" style="--c1:${light(c,.2)};--c2:${dark(c,.1)}"><i style="width:${r.size===Infinity?100:r.pct.toFixed(1)}%"></i></div>
+    <div class="barinfo"><span>${r.size===Infinity?mine.total+" soru":r.into+" / "+r.size+" soru"}</span><span>${nextTxt}</span></div>
+  </div>`;
+}
+function renderRing(){
+  const today=mine?num(mine.daily[todayKey()]):0,goal=mine?mine.goal:30;
+  const p=Math.min(1,today/goal),R=36,C=2*Math.PI*R,done=today>=goal;
+  $("ring").innerHTML=`<svg width="84" height="84" viewBox="0 0 84 84"><circle cx="42" cy="42" r="${R}" fill="none" stroke="var(--card2)" stroke-width="9"/>
+  <circle cx="42" cy="42" r="${R}" fill="none" stroke="${done?"var(--good)":"var(--accent)"}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-p)}" style="transition:stroke-dashoffset .6s"/></svg>
+  <div class="rt"><div>${today}<small>/ ${goal}${done?" ✓":""}</small></div></div>`;
+}
+function renderStats(){
+  if(!mine){$("stats").innerHTML="";return;}
+  const d=mine.daily,keys=Object.keys(d).filter(k=>num(d[k]));
+  const today=num(d[todayKey()]),week=sumFrom(d,weekStartKey());
+  const best=keys.reduce((m,k)=>Math.max(m,num(d[k])),0);
+  const avg=keys.length?Math.round(mine.total/keys.length):0;
+  const items=[[mine.total,"Toplam soru"],[today,"Bugün"],[week,"Bu hafta"],[streakOf(d)+" 🔥","Gün serisi"],[avg,"Aktif gün ort."],[best,"En iyi gün"],[keys.length,"Aktif gün"],[mine.goal,"Günlük hedef"]];
+  $("stats").innerHTML=items.map(i=>`<div class="stat"><b>${i[0]}</b><span>${i[1]}</span></div>`).join("");
+}
+function renderChart(){
+  if(!mine){$("chart").innerHTML="";$("hist").innerHTML="";return;}
+  const W=600,H=170,pl=26,pr=6,pt=12,pb=24;
+  const days=[];for(let i=range-1;i>=0;i--)days.push(addDays(new Date(),-i));
+  const vals=days.map(d=>num(mine.daily[dkey(d)]));
+  const max=Math.max(mine.goal,...vals,5)*1.1,bw=(W-pl-pr)/days.length;
+  const y=v=>pt+(H-pt-pb)*(1-v/max);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Günlük çözülen soru grafiği"><defs><linearGradient id="bg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent2)"/><stop offset="1" stop-color="var(--accent)"/></linearGradient></defs>`;
+  [0,.5,1].forEach(f=>{const v=Math.round(max/1.1*f);s+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text class="ax" x="${pl-4}" y="${y(v)+3}" text-anchor="end">${v}</text>`;});
+  days.forEach((d,i)=>{
+    const v=vals[i],x=pl+i*bw+bw*.15,w=bw*.7,h=Math.max(0,H-pb-y(v));
+    if(v)s+=`<rect x="${x}" y="${y(v)}" width="${w}" height="${h}" rx="3" fill="${v>=mine.goal?"var(--good)":"url(#bg1)"}"><title>${dkey(d)}: ${v} soru</title></rect>`;
+    const step=range>14?5:range>7?2:1;
+    if(i%step===0||i===days.length-1)s+=`<text class="ax" x="${x+w/2}" y="${H-8}" text-anchor="middle">${d.getDate()}/${d.getMonth()+1}</text>`;
+  });
+  s+=`<line x1="${pl}" x2="${W-pr}" y1="${y(mine.goal)}" y2="${y(mine.goal)}" stroke="var(--warn)" stroke-dasharray="4 4" stroke-width="1.5"/><text class="ax" x="${W-pr}" y="${y(mine.goal)-4}" text-anchor="end" style="fill:var(--warn)">hedef ${mine.goal}</text></svg>`;
+  $("chart").innerHTML=s;
+  const keys=Object.keys(mine.daily).filter(k=>num(mine.daily[k])).sort().reverse().slice(0,90);
+  const hmax=Math.max(1,...keys.map(k=>num(mine.daily[k])));
+  $("hist").innerHTML=keys.length?keys.map(k=>{
+    const v=num(mine.daily[k]);
+    const lab=keyToDate(k).toLocaleDateString("tr-TR",{day:"numeric",month:"short",weekday:"short"});
+    return`<div class="hrow"><span>${esc(lab)}</span><div class="hb"><i style="width:${v/hmax*100}%"></i></div><em>${v}</em></div>`;
+  }).join(""):'<div class="empty">Henüz kayıt yok. İlk sorunu ekle ve Demir\'den başla!</div>';
+}
+function renderPath(){
+  const r=myRankNow();
+  $("path").innerHTML=TIERS.map((T,i)=>{
+    const cls=i<r.t?"done":i===r.t?"cur":"";
+    return`<div class="pstep ${cls}">${emblem(i,T.divs>1?"I":"",54)}<div class="pn">${T.name}</div><div class="pt">${tierStart(i)}+</div></div>`;
+  }).join("");
+}
+function renderAch(){
+  if(!mine){$("ach").innerHTML="";return;}
+  const ctx=buildCtx({...mine,id:mode==="local"?"me":myId},seasonHistory(allPlayers()));
+  const got=ACHS.filter(a=>a.ok(ctx)).length;
+  $("achTitle").textContent=`Başarımlar · ${got}/${ACHS.length}`;
+  const sorted=[...ACHS].sort((a,b)=>(b.ok(ctx)?1:0)-(a.ok(ctx)?1:0));
+  $("ach").innerHTML=sorted.map(a=>{const ok=a.ok(ctx);return`<div class="at ${ok?"got":"lock"}"><div class="ic">${ok?a.icon:"🔒"}</div><div><b>${esc(a.name)}</b><span>${esc(a.desc)}</span></div></div>`;}).join("");
+}
+function renderSeason(){
+  const el=$("seasonCard");
+  if(!mine){el.innerHTML="";return;}
+  const cur=todayKey().slice(0,7),now=new Date();
+  const left=new Date(now.getFullYear(),now.getMonth()+1,0).getDate()-now.getDate();
+  const list=allPlayers().map(p=>({p,s:monthSums(p.daily)[cur]||0})).sort((a,b)=>b.s-a.s||b.p.total-a.p.total);
+  const myid=mode==="local"?"me":myId;
+  const pos=list.findIndex(x=>x.p.id===myid)+1,myS=monthSums(mine.daily)[cur]||0;
+  const maxT=SEASON_TROPHIES[2].n,pct=Math.min(100,myS/maxT*100);
+  const marks=SEASON_TROPHIES.map(t=>`<div class="tmark ${myS>=t.n?"on":""}" style="left:${t.n/maxT*100}%" title="${t.name}">${t.icon}<small>${t.n}</small></div>`).join("");
+  const hist=seasonHistory(allPlayers()).slice(0,4);
+  const medals=["🥇","🥈","🥉"];
+  const past=hist.length?hist.map(h=>{
+    const top=h.r.slice(0,3).map((x,i)=>`${medals[i]} ${esc(x.p.name)} <span>(${x.s})</span>`).join(" &nbsp; ");
+    const mi=h.r.findIndex(x=>x.p.id===myid);
+    return`<div class="prow"><b>${esc(monthLabel(h.m))}</b><div>${top}</div>${mi>=0?`<span>Sen: ${mi+1}. · ${h.r[mi].s}</span>`:""}</div>`;
+  }).join(""):'<div class="empty" style="padding:4px 0">Henüz biten sezon yok. Ay sonunda şampiyon belli olacak.</div>';
+  el.innerHTML=`<h2>Sezon · ${esc(monthLabel(cur))}</h2>
+  <div class="sline"><span>Kalan: <b>${left} gün</b></span><span>Sezon puanın: <b>${myS}</b></span><span>Sıran: <b>${pos?pos+". / "+list.length:"-"}</b></span></div>
+  <div class="trophy-track"><div class="bar"><i style="width:${pct}%"></i></div>${marks}</div>
+  <div style="font-size:12.5px;color:var(--muted);margin-bottom:8px">Ay boyunca 300 / 600 / 1000 soruya ulaş, kupa kazan. Ay sonunda 1. olan <b>👑 Sezon Şampiyonu</b> olur ve bir sonraki ay boyunca adının yanında taç taşır. Her ayın başında puanlar sıfırlanır (toplam rank'ın etkilenmez).</div>
+  <div class="past">${past}</div>`;
+}
+function renderLB(){
+  const wk=weekStartKey(),tk=todayKey(),cur=tk.slice(0,7);
+  const champ=reigningChamp();
+  const list=allPlayers().map(p=>({p,score:period==="all"?p.total:period==="week"?sumFrom(p.daily,wk):period==="season"?(monthSums(p.daily)[cur]||0):num(p.daily[tk])}));
+  list.sort((a,b)=>b.score-a.score||b.p.total-a.p.total);
+  const top=Math.max(1,list.length?list[0].score:1);
+  const unit={all:"toplam",week:"bu hafta",today:"bugün",season:"sezon"}[period];
+  const myid=mode==="local"?"me":myId;
+  $("lb").innerHTML=list.length?list.map((x,i)=>{
+    const r=rankOf(x.p.total),isMe=x.p.id===myid;
+    return`<div class="lrow ${isMe?"me":""} ${i<3?"p"+(i+1):""}">
+      <div class="pos">${i+1}</div>
+      ${frame(x.p.name,r.t,34,{hm:r.t>=1?Math.round(34*.55):8,vm:r.t>=8?12:r.t>=3?8:4})}
+      <div style="min-width:0"><div class="nm">${esc(x.p.name)}${x.p.id===champ?" 👑":""}${isMe?" (sen)":""}</div><div class="rk" style="color:${r.tier.color}">${esc(r.label)}</div></div>
+      <div class="sc">${x.score}<small>${unit}</small></div>
+      <div class="fillbar"><i style="width:${x.score/top*100}%"></i></div></div>`;
+  }).join(""):'<div class="empty">Henüz kimse yok. İlk sen ol!</div>';
+  const gb=$("grpbar");
+  if(mode==="db"&&grp){gb.style.display="flex";gb.innerHTML=`<span>👥 Grup kodu:</span><code>${esc(grp)}</code><button class="chip" id="copyGrp">Kopyala</button>`;$("copyGrp").onclick=copyGrp;}
+  else gb.style.display="none";
+  const note=$("lbNote");let msg="";
+  if(mode==="local")msg="Şu an çevrimdışı moddasın, sadece sen görünüyorsun. Arkadaşlarınla yarışmak için Supabase bağlantısını kur (README.md).";
+  else if(mode==="db"&&list.length<=1)msg="Arkadaşlarına siteyi gönder ve <b>"+esc(grp)+"</b> grup kodunu yazmalarını söyle, hepsi burada görünecek.";
+  note.style.display=msg?"block":"none";note.innerHTML=msg;
+}
+async function copyGrp(){
+  try{await navigator.clipboard.writeText(grp);toast("Grup kodu kopyalandı: "+grp);}catch(e){toast("Grup kodun: "+grp,4000);}
+}
+function render(){
+  if(mode==="loading")return;
+  $("loading").style.display="none";$("app").style.display="";
+  $("modePill").textContent=mode==="db"?"🟢 Canlı · arkadaş grubu":"📴 Çevrimdışı";
+  renderProfile();renderRing();renderStats();renderChart();renderAch();renderSeason();renderPath();renderLB();
+  if(mine){
+    if(document.activeElement!==$("setName"))$("setName").value=mine.name;
+    if(document.activeElement!==$("setGoal"))$("setGoal").value=mine.goal;
+    if(document.activeElement!==$("setGrp"))$("setGrp").value=grp;
+  }
+  $("setGrpWrap").style.display=mode==="db"?"":"none";
+  $("onbGrpWrap").style.display=mode==="db"?"":"none";
+  $("onb").classList.toggle("show",!mine);
+}
+
+/* ---------- Rank atlama ---------- */
+function showRankUp(r){
+  $("ruFrame").innerHTML=frame(mine.name,r.t,70,{hm:Math.round(70*.9),vm:30});
+  $("ruEmblem").innerHTML=emblem(r.t,r.divLabel,110);
+  const n=$("ruName");n.textContent=r.label;n.style.color=r.tier.color;
+  $("ruSub").textContent=r.next?`Sıradaki hedef: ${r.next}`:"Zirvedesin. Efsane!";
+  $("rankup").classList.add("show");
+  confetti(r.tier.color);
+}
+function confetti(base){
+  const cv=$("confetti"),ctx=cv.getContext("2d");
+  cv.width=innerWidth;cv.height=innerHeight;
+  const cols=[base,light(base,.5),dark(base,.2),"#ffffff","#ffd54a","#8b6cff"];
+  const ps=Array.from({length:150},()=>({x:Math.random()*cv.width,y:-20-Math.random()*cv.height*.5,vx:(Math.random()-.5)*3,vy:2+Math.random()*4,s:5+Math.random()*7,r:Math.random()*6,vr:(Math.random()-.5)*.3,c:cols[Math.floor(Math.random()*cols.length)]}));
+  let f=0;
+  (function tick(){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillStyle=p.c;ctx.fillRect(-p.s/2,-p.s/3,p.s,p.s*.6);ctx.restore();});
+    if(++f<220)requestAnimationFrame(tick);else ctx.clearRect(0,0,cv.width,cv.height);
+  })();
+}
+
+/* ---------- Olaylar ---------- */
+$("addBtn").onclick=()=>addSolved($("qn").value);
+$("qn").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addSolved($("qn").value);}});
+$("chips").addEventListener("click",e=>{const b=e.target.closest(".chip");if(b){$("qn").value=b.dataset.n;$("qn").focus();}});
+$("undoBtn").onclick=undo;
+$("ruClose").onclick=()=>$("rankup").classList.remove("show");
+$("rangeSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;range=+b.dataset.r;[...$("rangeSeg").children].forEach(x=>x.classList.toggle("on",x===b));renderChart();});
+$("perSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;period=b.dataset.p;[...$("perSeg").children].forEach(x=>x.classList.toggle("on",x===b));renderLB();});
+$("saveSet").onclick=async()=>{
+  if(!mine)return;
+  const nm=$("setName").value.trim().slice(0,20),g=num($("setGoal").value);
+  if(!nm)return toast("Takma ad boş olamaz");
+  if(!g||g>1000)return toast("Hedef 1–1000 arası olmalı");
+  mine.name=nm;mine.goal=g;
+  if(mode==="db"){
+    const ng=normGrp($("setGrp").value);
+    if(ng.length<3)return toast("Grup kodu en az 3 harf/rakam olmalı");
+    if(ng!==grp){grp=ng;lsSet(LSG,grp);persist();await connectGroup();toast("Gruba geçtin: "+grp);render();return;}
+  }
+  persist();render();toast("Ayarlar kaydedildi");
+};
+async function startProfile(){
+  const nm=$("onbName").value.trim().slice(0,20);
+  if(!nm)return toast("Bir takma ad yaz");
+  if(mode==="db"){
+    const g=normGrp($("onbGrp").value);
+    if(g.length<3)return toast("Grup kodu en az 3 harf/rakam olmalı");
+    grp=g;lsSet(LSG,grp);
+  }
+  mine=newPlayer(nm);
+  persist();
+  if(mode==="db")await connectGroup();
+  render();
+}
+$("onbGo").onclick=startProfile;
+$("onbName").addEventListener("keydown",e=>{if(e.key==="Enter"){if(mode==="db")$("onbGrp").focus();else startProfile();}});
+$("onbGrp").addEventListener("keydown",e=>{if(e.key==="Enter")startProfile();});
+
+/* ---------- Supabase ---------- */
+async function refreshPlayers(){
+  if(!sb||!grp)return;
+  const{data,error}=await sb.from("players").select("id,name,goal,total,daily").eq("grp",grp).limit(500);
+  if(error){console.error(error);return;}
+  players=(data||[]).map(r=>cleanPlayer(r.id,r));
+  if(!pending){const m=players.find(p=>p.id===myId);if(m)mine=m;}
+  render();
+}
+async function connectGroup(){
+  if(channel){try{await sb.removeChannel(channel);}catch(e){}channel=null;}
+  await writeChain;
+  await refreshPlayers();
+  if(!grp)return;
+  channel=sb.channel("players-"+grp)
+    .on("postgres_changes",{event:"*",schema:"public",table:"players",filter:"grp=eq."+grp},()=>{clearTimeout(refreshT);refreshT=setTimeout(refreshPlayers,350);})
+    .subscribe();
+  if(!pollT)pollT=setInterval(refreshPlayers,30000);
+}
+function showBanner(html){const b=$("banner");b.innerHTML=html;b.style.display="block";}
+function startLocal(){
+  mode="local";
+  const raw=lsGet(LS);
+  if(raw){try{mine=cleanPlayer("me",JSON.parse(raw));}catch(e){}}
+  render();
+}
+async function init(){
+  if(!CONFIG.SUPABASE_URL||!CONFIG.SUPABASE_ANON_KEY){
+    showBanner("⚙️ Supabase henüz bağlı değil, o yüzden çevrimdışı moddasın (veriler sadece bu cihazda). Arkadaşlarla liderlik tablosu için <b>README.md</b>'deki kurulumu yap ve <b>index.html</b> başındaki <code>CONFIG</code> alanını doldur.");
+    return startLocal();
+  }
+  try{
+    if(!window.supabase)throw new Error("supabase-js yüklenemedi");
+    sb=window.supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true}});
+    let{data:{session}}=await sb.auth.getSession();
+    if(!session){
+      const r=await sb.auth.signInAnonymously();
+      if(r.error)throw r.error;
+      session=r.data.session;
+    }
+    myId=session.user.id;
+    mode="db";
+    grp=lsGet(LSG)||"";
+    const{data:row,error}=await sb.from("players").select("*").eq("id",myId).maybeSingle();
+    if(error)throw error;
+    if(row){mine=cleanPlayer(myId,row);grp=row.grp;lsSet(LSG,grp);}
+    if(grp)await connectGroup();
+    render();
+  }catch(e){
+    console.error(e);
+    showBanner("⚠️ Sunucuya bağlanılamadı ("+esc(e.message||e)+"). Çevrimdışı moda geçildi. Supabase ayarlarını ve README'deki adımları kontrol et.");
+    mode="local";startLocal();
+  }
+}
+init();
+</script>
+</body>
+</html>
