@@ -299,15 +299,15 @@ const CONFIG={
 
 /* ---------- Rank sistemi ---------- */
 const TIERS=[
-  {name:"Demir",color:"#8a8f98",size:50,divs:4},
-  {name:"Bronz",color:"#c07a3e",size:75,divs:4},
-  {name:"Gümüş",color:"#c3ccd8",size:100,divs:4},
-  {name:"Altın",color:"#f5b830",size:150,divs:4},
-  {name:"Platin",color:"#35d3c8",size:200,divs:4},
-  {name:"Zümrüt",color:"#2fd673",size:250,divs:4},
-  {name:"Elmas",color:"#5aa9ff",size:300,divs:4},
-  {name:"Usta",color:"#b455f0",size:2000,divs:1},
-  {name:"Grandmaster",color:"#f0494f",size:2500,divs:1},
+  {name:"Demir",color:"#8a8f98",size:25,divs:4},
+  {name:"Bronz",color:"#c07a3e",size:37.5,divs:4},
+  {name:"Gümüş",color:"#c3ccd8",size:50,divs:4},
+  {name:"Altın",color:"#f5b830",size:75,divs:4},
+  {name:"Platin",color:"#35d3c8",size:100,divs:4},
+  {name:"Zümrüt",color:"#2fd673",size:125,divs:4},
+  {name:"Elmas",color:"#5aa9ff",size:150,divs:4},
+  {name:"Usta",color:"#b455f0",size:1000,divs:1},
+  {name:"Grandmaster",color:"#f0494f",size:1250,divs:1},
   {name:"Challenger",color:"#ffd54a",size:Infinity,divs:1}
 ];
 const ROMAN=["IV","III","II","I"];
@@ -317,16 +317,18 @@ function rankOf(total){
   for(let t=0;t<TIERS.length;t++){
     const T=TIERS[t];
     for(let d=0;d<T.divs;d++){
-      if(T.size===Infinity||total<acc+T.size){
-        const into=total-acc;
+      const st=Math.round(acc);
+      const en=T.size===Infinity?Infinity:Math.round(acc+T.size);
+      if(en===Infinity||total<en){
+        const into=total-st,size=en===Infinity?Infinity:en-st;
         let next=null;
-        if(T.size!==Infinity){
+        if(size!==Infinity){
           if(d<T.divs-1)next=T.name+" "+ROMAN[d+1];
           else{const N=TIERS[t+1];next=N.divs>1?N.name+" "+ROMAN[0]:N.name;}
         }
-        return{t,d,tier:T,key:t*10+d,into,size:T.size,
-          pct:T.size===Infinity?100:into/T.size*100,
-          need:T.size===Infinity?0:T.size-into,next,
+        return{t,d,tier:T,key:t*10+d,into,size,
+          pct:size===Infinity?100:into/size*100,
+          need:size===Infinity?0:size-into,next,
           divLabel:T.divs>1?ROMAN[d]:"",
           label:T.divs>1?T.name+" "+ROMAN[d]:T.name};
       }
@@ -334,7 +336,7 @@ function rankOf(total){
     }
   }
 }
-function tierStart(t){let a=0;for(let i=0;i<t;i++)a+=TIERS[i].size*TIERS[i].divs;return a;}
+function tierStart(t){let a=0;for(let i=0;i<t;i++)a+=TIERS[i].size*TIERS[i].divs;return Math.round(a);}
 
 /* ---------- Renk yardımcıları ---------- */
 function hex2rgb(h){h=h.replace("#","");return[0,2,4].map(i=>parseInt(h.substr(i,2),16));}
