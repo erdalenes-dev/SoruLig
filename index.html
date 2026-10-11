@@ -141,6 +141,37 @@ button{font:inherit;cursor:pointer}
 .prow b{font-family:var(--font)}
 .prow span{color:var(--muted)}
 
+
+/* rekorlar + ısı haritası */
+.recs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:520px){.recs{grid-template-columns:repeat(2,1fr)}}
+.trend{display:flex;gap:12px;align-items:center;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:10px}
+.trend .ti{font-size:26px;line-height:1;flex:none;width:30px;text-align:center}
+.trend .tm{font-size:14.5px;line-height:1.4}
+.trend .ts{font-size:12.5px;color:var(--muted);margin-top:2px}
+.trend .up{color:var(--good);font-weight:800}.trend .down{color:var(--warn);font-weight:800}.trend .flat{color:var(--muted);font-weight:800}
+.heat{display:grid;grid-template-columns:28px repeat(12,minmax(0,1fr));gap:4px;align-items:center}
+.heat .hl{font-size:10px;color:var(--muted);white-space:nowrap}
+.heat .hm{font-size:10px;color:var(--muted);white-space:nowrap;overflow:visible;height:12px}
+.hc{aspect-ratio:1;width:100%;border-radius:5px;background:var(--card2);border:1px solid var(--line);cursor:pointer;padding:0;display:block}
+.hc.l1{background:color-mix(in srgb,var(--good) 28%,var(--card2));border-color:transparent}
+.hc.l2{background:color-mix(in srgb,var(--good) 58%,var(--card2));border-color:transparent}
+.hc.l3{background:var(--good);border-color:transparent}
+.hc.l4{background:var(--good);border-color:#f2b632;box-shadow:inset 0 0 0 2px #f2b632}
+.hc.fut{visibility:hidden;pointer-events:none}
+.hc.tod{border-color:var(--text)}
+.hc.sel{outline:2px solid var(--accent);outline-offset:1px}
+.heatinfo{font-size:13px;margin-top:10px;min-height:20px}
+.hleg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11.5px;color:var(--muted);margin-top:8px;align-items:center}
+.hleg span{display:inline-flex;align-items:center;gap:5px}
+.hleg i{display:inline-block;width:12px;height:12px;border-radius:4px;background:var(--card2);border:1px solid var(--line)}
+.hleg i.l1{background:color-mix(in srgb,var(--good) 28%,var(--card2));border-color:transparent}
+.hleg i.l2{background:color-mix(in srgb,var(--good) 58%,var(--card2));border-color:transparent}
+.hleg i.l3{background:var(--good);border-color:transparent}
+.hleg i.l4{background:var(--good);box-shadow:inset 0 0 0 2px #f2b632;border-color:#f2b632}
+.goalnote{font-size:12.5px;color:var(--muted);margin-bottom:8px}
+.goalnote b{color:var(--text)}
+
 /* rank path */
 .path{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}
 .pstep{flex:none;width:78px;text-align:center;opacity:.35;transition:opacity .3s}
@@ -212,6 +243,8 @@ label.l{font-size:12px;color:var(--muted);display:block;margin:0 0 4px}
       </div>
 
       <div class="card"><h2>İstatistikler</h2><div class="stats" id="stats"></div></div>
+
+      <div class="card" id="recCard"></div>
 
       <div class="card">
         <div class="row" style="justify-content:space-between;margin-bottom:10px">
@@ -664,6 +697,86 @@ function renderStats(){
   const items=[[mine.total,"Toplam soru"],[today,"Bugün"],[week,"Bu hafta"],[streakOf(d)+" 🔥","Gün serisi"],[avg,"Aktif gün ort."],[best,"En iyi gün"],[keys.length,"Aktif gün"],[mine.goal,"Günlük hedef"]];
   $("stats").innerHTML=items.map(i=>`<div class="stat"><b>${i[0]}</b><span>${i[1]}</span></div>`).join("");
 }
+
+/* ---------- Rekorlar + ısı haritası ---------- */
+let heatSel=null;
+function weekKeyOf(k){const d=keyToDate(k);return dkey(addDays(d,-((d.getDay()+6)%7)));}
+function dayInfoText(k){
+  const v=num(mine.daily[k]),dt=keyToDate(k).toLocaleDateString("tr-TR",{day:"numeric",month:"long",weekday:"long"});
+  if(!v)return`<b>${esc(dt)}</b> · hiç soru yok`;
+  return`<b>${esc(dt)}</b> · ${v} soru · hedefin %${Math.round(v/mine.goal*100)}${v>=mine.goal?" ✓":""}`;
+}
+function renderRecords(){
+  const el=$("recCard");
+  if(!mine){el.innerHTML="";return;}
+  const d=mine.daily,goal=mine.goal,keys=Object.keys(d).filter(k=>num(d[k]));
+  const short=k=>keyToDate(k).toLocaleDateString("tr-TR",{day:"numeric",month:"short"});
+  let bestK=null,bestV=0;keys.forEach(k=>{if(num(d[k])>bestV){bestV=num(d[k]);bestK=k;}});
+  const wk={};keys.forEach(k=>{const w=weekKeyOf(k);wk[w]=(wk[w]||0)+num(d[k]);});
+  let bestW=null,bestWV=0;for(const w in wk)if(wk[w]>bestWV){bestWV=wk[w];bestW=w;}
+  const recs=[[bestV,"En iyi gün"+(bestK?" · "+short(bestK):"")],[bestWV,"En iyi hafta"+(bestW?" · "+short(bestW)+" haftası":"")],[longestStreak(d),"En uzun seri"],[mine.total.toLocaleString("tr-TR"),"Toplam"]];
+
+  // trend: son 7 gün vs önceki 7 gün
+  const dv=i=>num(d[dkey(addDays(new Date(),-i))]);
+  let l7=0,p7=0;for(let i=0;i<7;i++){l7+=dv(i);p7+=dv(i+7);}
+  const avg=Math.round(l7/7);
+  let icon="▶",cls="flat",head="",sub="";
+  if(!l7&&!p7){icon="💤";head="Son 14 günde kayıt yok";sub="Bugün küçük bir adımla başla, 10 soru bile yeter.";}
+  else if(!p7){icon="🚀";head=`Son 7 gün ortalaması <b>${avg}</b> soru/gün`;sub="Yeni bir başlangıç yaptın, böyle devam!";}
+  else{
+    const pct=Math.round((l7-p7)/p7*100);
+    const txt=(pct>0?"+":"")+pct+"%";
+    if(pct>=10){icon="▲";cls="up";sub=pct>=50?"Roket gibisin, rakiplerin dikkat etsin! 🔥":"Harika gidiyorsun, tempoyu koru!";}
+    else if(pct<=-50){icon="▼";cls="down";sub="Son hafta ciddi yavaşladın. Bugün toparlamak için güzel bir gün.";}
+    else if(pct<=-10){icon="▼";cls="down";sub="Son hafta biraz yavaşladın.";}
+    else{icon="▶";cls="flat";sub="Temponu koruyorsun, istikrar güzel şey.";}
+    head=`Son 7 gün ortalaması <b>${avg}</b> soru/gün · önceki 7 güne göre <span class="${cls}">${txt}</span>`;
+  }
+  const iconHtml=`<span class="${cls}" style="font-size:${icon.length>1?26:22}px">${icon}</span>`;
+
+  // ısı haritası (12 hafta, Pzt-Paz)
+  const today=new Date(),tk=todayKey();
+  const monday=addDays(today,-((today.getDay()+6)%7)),start=addDays(monday,-7*11);
+  const h=Math.ceil(goal/2);
+  const lvl=v=>!v?"":v<h?"l1":v<goal?"l2":v<2*goal?"l3":"l4";
+  let cells="",months="";
+  const rl=["Pzt","","Çar","","Cum","",""];
+  for(let r=0;r<7;r++)if(rl[r])cells+=`<div class="hl" style="grid-column:1;grid-row:${r+2}">${rl[r]}</div>`;
+  for(let w=0;w<12;w++){
+    const mon=addDays(start,w*7),nextMon=addDays(mon,7);
+    const showMonth=w===0?nextMon.getDate()>7:mon.getDate()<=7;
+    if(showMonth)
+      months+=`<div class="hm" style="grid-column:${w+2};grid-row:1">${mon.toLocaleDateString("tr-TR",{month:"short"})}</div>`;
+    for(let r=0;r<7;r++){
+      const dt=addDays(start,w*7+r),k=dkey(dt),v=num(d[k]),fut=k>tk;
+      const cls2=["hc",lvl(v),fut?"fut":"",k===tk?"tod":"",k===heatSel?"sel":""].filter(Boolean).join(" ");
+      cells+=`<button class="${cls2}" data-k="${k}" style="grid-column:${w+2};grid-row:${r+2}" title="${esc(dayInfoText(k).replace(/<[^>]+>/g,""))}" aria-label="${esc(dayInfoText(k).replace(/<[^>]+>/g,""))}"></button>`;
+    }
+  }
+  const rng=[];
+  if(h>1)rng.push(["l1","1–"+(h-1)]);
+  if(goal>h)rng.push(["l2",h+"–"+(goal-1)]);
+  rng.push(["l3",goal+"–"+(2*goal-1)+" (hedef ✓)"]);
+  rng.push(["l4",2*goal+"+ (2× hedef)"]);
+  const leg=`<span><i></i>0</span>`+rng.map(x=>`<span><i class="${x[0]}"></i>${x[1]}</span>`).join("");
+
+  el.innerHTML=`<h2>Rekorlar</h2>
+  <div class="recs">${recs.map(x=>`<div class="stat"><b>${x[0]}</b><span>${esc(x[1])}</span></div>`).join("")}</div>
+  <div class="trend"><div class="ti">${iconHtml}</div><div><div class="tm">${head}</div><div class="ts">${sub}</div></div></div>
+  <h2 style="margin-top:18px">Son 12 hafta</h2>
+  <div class="goalnote">Günlük hedefin: <b>${goal} soru</b>. Kare ne kadar koyuysa o gün hedefine o kadar yaklaştın.</div>
+  <div class="heat" id="heat"><div style="grid-column:1;grid-row:1"></div>${months}${cells}</div>
+  <div class="heatinfo" id="heatInfo">${heatSel?dayInfoText(heatSel):'<span style="color:var(--muted)">Bir kareye dokun, o günün detayını gör.</span>'}</div>
+  <div class="hleg">${leg}</div>`;
+  $("heat").onclick=e=>{
+    const b=e.target.closest(".hc");if(!b||b.classList.contains("fut"))return;
+    heatSel=b.dataset.k;
+    $("heat").querySelectorAll(".hc.sel").forEach(x=>x.classList.remove("sel"));
+    b.classList.add("sel");
+    $("heatInfo").innerHTML=dayInfoText(heatSel);
+  };
+}
+
 function renderChart(){
   if(!mine){$("chart").innerHTML="";$("hist").innerHTML="";return;}
   const W=600,H=170,pl=26,pr=6,pt=12,pb=24;
@@ -759,7 +872,7 @@ function render(){
   if(mode==="loading")return;
   $("loading").style.display="none";$("app").style.display="";
   $("modePill").textContent=mode==="db"?"🟢 Canlı · arkadaş grubu":"📴 Çevrimdışı";
-  renderProfile();renderRing();renderStats();renderChart();renderAch();renderSeason();renderPath();renderLB();
+  renderProfile();renderRing();renderStats();renderRecords();renderChart();renderAch();renderSeason();renderPath();renderLB();
   if(mine){
     if(document.activeElement!==$("setName"))$("setName").value=mine.name;
     if(document.activeElement!==$("setGoal"))$("setGoal").value=mine.goal;
