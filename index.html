@@ -172,6 +172,10 @@ button{font:inherit;cursor:pointer}
 .goalnote{font-size:12.5px;color:var(--muted);margin-bottom:8px}
 .goalnote b{color:var(--text)}
 
+a.btn{text-decoration:none;display:block;text-align:center}
+.sharegrid{display:grid;gap:8px}
+.sharegrid .btn{font-size:15px;padding:11px 14px;width:100%}
+
 /* rank path */
 .path{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}
 .pstep{flex:none;width:78px;text-align:center;opacity:.35;transition:opacity .3s}
@@ -312,7 +316,20 @@ label.l{font-size:12px;color:var(--muted);display:block;margin:0 0 4px}
     <div style="font-family:var(--font);letter-spacing:2px;color:var(--muted);font-size:13px">TERFİ ETTİN!</div>
     <h3 id="ruName"></h3>
     <p id="ruSub"></p>
-    <button class="btn" id="ruClose" style="width:100%">Devam et</button>
+    <div class="sharegrid"><button class="btn" id="ruShare">📤 Arkadaşlarınla paylaş</button><button class="btn ghost" id="ruClose">Devam et</button></div>
+  </div>
+</div>
+
+<!-- paylaş -->
+<div class="overlay" id="shareov" style="z-index:55">
+  <div class="modal">
+    <h3 style="font-size:22px;margin-top:0">Paylaş</h3>
+    <img id="shareImg" alt="Paylaşım kartı" style="width:100%;border-radius:14px;margin:6px 0 12px;display:block">
+    <div class="sharegrid">
+      <a class="btn" id="shDl" download="sorulig.png">📥 Resmi indir</a>
+      <button class="btn ghost" id="shClose">Kapat</button>
+    </div>
+    <p style="font-size:12px;margin:12px 0 0">Resmi indirip WhatsApp, Instagram gibi uygulamalardan arkadaşlarınla paylaşabilirsin.</p>
   </div>
 </div>
 <canvas id="confetti"></canvas>
@@ -673,6 +690,7 @@ function renderProfile(){
       <div class="pname">${esc(mine.name)}${crown}</div>
       <div class="prank" style="color:${c}">${esc(r.label)}</div>
       <div style="font-size:12.5px;color:var(--muted)">${mine.total} toplam soru</div>
+      <button class="chip" id="shareProf" style="margin-top:8px">📤 Paylaş</button>
     </div>
     <div>${emblem(r.t,r.divLabel,100)}</div>
   </div>
@@ -680,6 +698,7 @@ function renderProfile(){
     <div class="bar" style="--c1:${light(c,.2)};--c2:${dark(c,.1)}"><i style="width:${r.size===Infinity?100:r.pct.toFixed(1)}%"></i></div>
     <div class="barinfo"><span>${r.size===Infinity?mine.total+" soru":r.into+" / "+r.size+" soru"}</span><span>${nextTxt}</span></div>
   </div>`;
+  $("shareProf").onclick=()=>doShare("profile");
 }
 function renderRing(){
   const today=mine?num(mine.daily[todayKey()]):0,goal=mine?mine.goal:30;
@@ -904,6 +923,103 @@ function confetti(base){
     if(++f<220)requestAnimationFrame(tick);else ctx.clearRect(0,0,cv.width,cv.height);
   })();
 }
+
+
+/* ---------- Paylaşım kartı ---------- */
+const siteUrl=()=>location.href.split(/[?#]/)[0].replace(/index\.html$/,"");
+const loadImg=src=>new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=src;});
+const svgURL=str=>"data:image/svg+xml;charset=utf-8,"+encodeURIComponent(str);
+const hexA=(h,a)=>{const c=hex2rgb(h);return`rgba(${c[0]},${c[1]},${c[2]},${a})`;};
+function rawFrameSvg(name,t){
+  const h=frame(name,t,100,{hm:0,vm:0});
+  return h.match(/<svg[\s\S]*<\/svg>/)[0]
+    .replace('<svg class="fx" viewBox="0 0 200 200"','<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="825" viewBox="-26 -4 252 208"')
+    .replace(/var\(--card2\)/g,"#1f2137").replace(/var\(--text\)/g,"#ffffff");
+}
+function rrect(x,px,py,w,h,r){x.beginPath();x.moveTo(px+r,py);x.arcTo(px+w,py,px+w,py+h,r);x.arcTo(px+w,py+h,px,py+h,r);x.arcTo(px,py+h,px,py,r);x.arcTo(px,py,px+w,py,r);x.closePath();}
+async function makeCard(kind){
+  const r=myRankNow(),c=r.tier.color,W=1080,H=1350;
+  const cv=document.createElement("canvas");cv.width=W;cv.height=H;
+  const x=cv.getContext("2d");
+  try{await document.fonts.load("800 80px Oxanium");}catch(e){}
+  const F=(w,sz)=>`${w} ${sz}px Oxanium, system-ui, -apple-system, "Segoe UI", sans-serif`;
+  // arka plan
+  let g=x.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,"#0b0c18");g.addColorStop(.5,mix("#0b0c18",c,.3));g.addColorStop(1,"#0b0c18");
+  x.fillStyle=g;x.fillRect(0,0,W,H);
+  let rg=x.createRadialGradient(W/2,540,30,W/2,540,640);
+  rg.addColorStop(0,hexA(c,.5));rg.addColorStop(1,hexA(c,0));
+  x.fillStyle=rg;x.fillRect(0,0,W,H);
+  let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+  for(let i=0;i<70;i++){x.fillStyle=`rgba(255,255,255,${.1+rnd()*.35})`;x.beginPath();x.arc(rnd()*W,rnd()*H,.8+rnd()*2.2,0,7);x.fill();}
+  // çerçeve çizgisi
+  x.strokeStyle=hexA(c,.45);x.lineWidth=4;rrect(x,24,24,W-48,H-48,44);x.stroke();
+  // üst yazı
+  x.textAlign="center";x.textBaseline="alphabetic";
+  x.fillStyle="#ffffff";x.font=F(800,56);x.fillText("🏆 SoruLig",W/2,108);
+  x.fillStyle=light(c,.55);x.font=F(700,36);
+  x.fillText(kind==="rankup"?"✦ TERFİ ETTİM! ✦":"✦ RANK DURUMUM ✦",W/2,162);
+  // avatar çerçevesi
+  try{const fi=await loadImg(svgURL(rawFrameSvg(mine.name,r.t)));x.drawImage(fi,W/2-430,185,860,710);}catch(e){console.error(e);}
+  // emblem + isim
+  let name=mine.name,nameSz=66;
+  x.font=F(800,nameSz);
+  while(x.measureText(name).width>560&&nameSz>34){nameSz-=4;x.font=F(800,nameSz);}
+  const nameW=x.measureText(name).width;
+  x.font=F(800,84);const rankW=x.measureText(r.label).width;
+  const embW=210,gap=34,txtW=Math.max(nameW,rankW),gw=embW+gap+txtW,left=(W-gw)/2;
+  try{
+    const es=emblem(r.t,r.divLabel,embW).replace("<svg ",'<svg xmlns="http://www.w3.org/2000/svg" ');
+    const ei=await loadImg(svgURL(es));
+    x.drawImage(ei,left,905,embW,Math.round(embW*.84));
+  }catch(e){console.error(e);}
+  x.textAlign="left";
+  x.fillStyle="#ffffff";x.font=F(800,nameSz);x.fillText(name,left+embW+gap,965);
+  x.fillStyle=light(c,.2);x.font=F(800,84);x.fillText(r.label,left+embW+gap,1052);
+  // istatistik kutuları
+  const stats=[[mine.total.toLocaleString("tr-TR"),"toplam soru"],[streakOf(mine.daily)+" 🔥","gün serisi"],[unlockedIds(mine).size+"/"+ACHS.length,"başarım"]];
+  const bw=300,bg=30,bx=(W-(bw*3+bg*2))/2;
+  stats.forEach((st,i)=>{
+    const px=bx+i*(bw+bg);
+    x.fillStyle="rgba(255,255,255,.08)";rrect(x,px,1108,bw,118,22);x.fill();
+    x.strokeStyle=hexA(c,.35);x.lineWidth=2;x.stroke();
+    x.textAlign="center";x.fillStyle="#ffffff";x.font=F(800,50);x.fillText(st[0],px+bw/2,1168);
+    x.fillStyle="rgba(255,255,255,.65)";x.font=F(600,24);x.fillText(st[1],px+bw/2,1204);
+  });
+  // alt yazı + link
+  x.textAlign="center";
+  x.fillStyle="rgba(255,255,255,.75)";x.font=F(600,28);x.fillText("Sen de katıl, soru çöz, rank atla!",W/2,1272);
+  const url=siteUrl().replace(/^https?:\/\//,"").replace(/\/$/,"");
+  x.fillStyle=light(c,.35);x.font=F(800,34);x.fillText(url||"SoruLig",W/2,1312);
+  return await new Promise(res=>cv.toBlob(res,"image/png"));
+}
+function shareText(kind){
+  const r=myRankNow();
+  const head=kind==="rankup"?`SoruLig'de ${r.label} ligine yükseldim! 🏆`:`SoruLig'de ${r.label} ligindeyim! 🏆`;
+  return`${head} Toplam ${mine.total} soru çözdüm. Sen de katıl: ${siteUrl()}`;
+}
+let shareUrlObj=null;
+async function doShare(kind){
+  if(!mine)return;
+  toast("Kart hazırlanıyor…",1500);
+  let blob;
+  try{blob=await makeCard(kind);}catch(e){console.error(e);return toast("Kart oluşturulamadı");}
+  if(!blob)return toast("Kart oluşturulamadı");
+  const text=shareText(kind);
+  const file=new File([blob],"sorulig.png",{type:"image/png"});
+  const touch=window.matchMedia&&matchMedia("(pointer:coarse)").matches;
+  if(touch&&navigator.canShare&&navigator.canShare({files:[file]})){
+    try{await navigator.share({files:[file],text,title:"SoruLig"});return;}
+    catch(e){if(e&&e.name==="AbortError")return;console.error(e);}
+  }
+  if(shareUrlObj)URL.revokeObjectURL(shareUrlObj);
+  shareUrlObj=URL.createObjectURL(blob);
+  $("shareImg").src=shareUrlObj;
+  $("shDl").href=shareUrlObj;
+  $("shareov").classList.add("show");
+}
+$("ruShare").onclick=()=>doShare("rankup");
+$("shClose").onclick=()=>$("shareov").classList.remove("show");
 
 /* ---------- Olaylar ---------- */
 $("addBtn").onclick=()=>addSolved($("qn").value);
